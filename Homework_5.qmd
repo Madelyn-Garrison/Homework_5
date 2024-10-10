@@ -1,0 +1,294 @@
+---
+title: "Homework 5"
+format: html
+editor: visual
+---
+
+## Task 1: Read in the Data and Modify
+
+First, the data will be read in and combined using the code provided from UCI.
+
+```{r}
+d1=read.table("student-mat.csv",sep=";",header=TRUE)
+d2=read.table("student-por.csv",sep=";",header=TRUE)
+
+d3=merge(d1,d2,by=c("school","sex","age","address","famsize","Pstatus","Medu","Fedu","Mjob","Fjob","reason","nursery","internet"))
+print(nrow(d3)) # 382 students
+
+```
+
+Second, the data will be read in using the `tidyverse` and `inner_join()` while matching on the same variables as UCI.
+
+```{r}
+library("tidyverse")
+mat<-read_csv2("student-mat.csv")
+por<-read_csv2("student-por.csv")
+combo<-inner_join(mat,por,by=join_by(school==school, sex==sex, age==age, address==address, 
+                                     famsize==famsize, Pstatus==Pstatus, Medu==Medu, Fedu==Fedu, 
+                                     Mjob==Mjob, Fjob==Fjob, reason==reason, nursery==nursery, 
+                                     internet==internet))
+```
+
+R throws a warning that there is an unexpected many-to-many relationship between the two data sets. It seems that there are more matching variables in the data set. It is likely not joined correctly. Now, the data will be matched on all variables except `absences`, `G1`, `G2`, and `G3`.
+
+```{r}
+my_data<-inner_join(mat,por,by=join_by(school==school, sex==sex, age==age, address==address, 
+                                       famsize==famsize, Pstatus==Pstatus, Medu==Medu, Fedu==Fedu,   
+                                       Mjob==Mjob, Fjob==Fjob, reason==reason, nursery==nursery, 
+                                       internet==internet, guardian==guardian, traveltime==traveltime, 
+                                       studytime==studytime, failures==failures, schoolsup==schoolsup, 
+                                       famsup==famsup, activities==activities, higher==higher, 
+                                       romantic==romantic, famrel==famrel, freetime==freetime, 
+                                       goout==goout, Dalc==Dalc, Walc==Walc, health==health))
+```
+
+The variables `famsize`, `Pstatus`, `Mjob`, and `Fjob` are coverted into factor variables.
+
+```{r}
+    mat|>
+      mutate(famsize=as_factor(famsize), Pstatus=as_factor(Pstatus), Mjob=as_factor(Mjob), 
+             Fjob=as_factor(Fjob))
+    por|>
+      mutate(famsize=as_factor(famsize), Pstatus=as_factor(Pstatus), Mjob=as_factor(Mjob), 
+             Fjob=as_factor(Fjob))
+    my_data|>
+      mutate(famsize=as_factor(famsize), Pstatus=as_factor(Pstatus), Mjob=as_factor(Mjob), 
+             Fjob=as_factor(Fjob))
+```
+
+## Task 2: Summarize the Data (Very Basic EDA)
+
+To do a basic EDA, we'll look over some statistics for our variables. We know a bit about the variables from the website and nothing in the summary statistics seems unreasonable.
+
+```{r}
+psych::describe(my_data)
+```
+
+To check for missing values, we'll use is.na. There are no missing values in the data set.
+
+```{r}
+colSums(is.na(my_data))
+```
+
+### Categorical variables
+
+We can create a one-way contingency table on `famsize`, which will give us the number of children that come from a household with more than 3 people and the number that come from a family with 3 people or fewer.
+
+```{r}
+one_way<-table(my_data$famsize)
+one_way
+```
+
+This two-way contingency table on `famsize` and `Pstatus` provides counts for every combination of family size and parents' cohabitation status.
+
+```{r}
+two_way<-table(my_data$famsize, my_data$Pstatus)
+two_way
+```
+
+This three-way contingency table on `Mjob`, `Fjob` and `Pstatus` provides counts for every combination of the mother's job, the father's job, and the parents' cohabitation status.
+
+```{r}
+three_way<-table(my_data$Mjob, my_data$Fjob, my_data$Pstatus)
+three_way
+```
+
+By using `filter()`, we create a data set with only children whose parents live together.
+
+```{r}
+Tparents<- my_data |>
+  filter(Pstatus=="T")
+conditional_1 <- table(Tparents$Mjob, Tparents$Fjob)
+conditional_1
+```
+
+We get the same conditional two-way table by subsetting the three-way contingency table we already made.
+
+```{r}
+conditional_2<-three_way[,,"T"]
+conditional_2
+```
+
+Using the tidyverse functions `group_by()`, `summarize()`, and `pivot_wider`, we can recreate the two-way contingency table we made above.
+
+```{r}
+two_way_fam<-my_data |>
+  group_by(famsize, Pstatus) |>
+  summarize(count=n()) |>
+  pivot_wider(names_from=Pstatus, values_from="count")
+two_way_fam
+```
+
+Now we can create a stacked bar graph for parental cohabitation status, with the family size also indicated.
+
+```{r}
+G<-ggplot(data=my_data, aes(x = Pstatus, fill= famsize))
+G + geom_bar()+
+  labs(title = "Count of Parents Living Apart or Together", x = "Parent's Cohabitation Status", y = 
+               "Count")
+```
+
+Now we can create a side-by-side bar graphs for parental cohabitation status, with the family size also seperated.
+
+```{r}
+G + geom_bar(position = "dodge")+
+  labs(title = "Count of Parents Living Apart or Together", x = "Parent's Cohabitation Status", y = 
+               "Count")
+```
+
+These graphs show that the vast majority of children have parents who live together, and those families are predominantly larger than 3 people. Of the children whose parents live apart, the family size is pretty evenly split.
+
+### Numeric Variables
+
+The mean and standard deviation for the variables `age`, absences in the math data set (`absences.x`) and the final math score (`G3.x`) are calculated.
+
+```{r}
+my_data |>
+  summarize(mean_age=mean(age), sd_age=sd(age), mean_abs=mean(absences.x), sd_abs=sd(absences.x), 
+            mean_G3=mean(G3.x), sd_G3=sd(G3.x))
+```
+
+We find the same summary statistics for the same variables, but grouped by `famsize`.
+
+```{r}
+my_data |>
+  group_by(famsize) |>
+  summarize(mean_age=mean(age), sd_age=sd(age), mean_abs=mean(absences.x), sd_abs=sd(absences.x), 
+            mean_G3=mean(G3.x), sd_G3=sd(G3.x))
+```
+
+At first glance, the means don't appear meaningfully different, based on the standard deviations.
+
+Now, we find the same summary statistics for the same variables, but grouped by `famsize` and `sex`.
+
+```{r}
+my_data |>
+  group_by(famsize, sex) |>
+  summarize(mean_age=mean(age), sd_age=sd(age), mean_abs=mean(absences.x), sd_abs=sd(absences.x), 
+            mean_G3=mean(G3.x), sd_G3=sd(G3.x))
+```
+
+The age variables seems steady, but there could be enough of a difference in the number of absences and the final math grade to be meaningful.
+
+Now we create a correlation matrix for all our numeric variables.
+
+```{r}
+my_data |>
+  select(age, absences.x, absences.y, G1.x, G1.y, G2.x, G2.y, G3.x, G3.y) |>
+  cor()
+```
+
+There are some high correlations between some of the test scores, but not all of them. Most of the realtionships seem realtively weak.
+
+We can create a histogram, kernel density plot, and boxplot for `age` grouped by `famsize`. 
+
+```{r}
+N<-ggplot(data=my_data, aes(x = age, fill=famsize))
+N + geom_histogram(binwidth=1)+
+  labs(title = "Age of Child by Family Size", x = "Age",)
+```
+
+This histogram is pretty clunky, but you can see where most of the ages are clustered and that they seem to be more varied in the LE3.
+
+```{r}
+N + geom_density(adjust=2)+
+  labs(title = "Age of Child by Family Size", x = "Age",)
+```
+
+The kernel density graph shows the distribution in a similar way. I don't think having a smoother histogram made this graph look better. This is likely due to the numeric variable being discrete. 
+
+```{r}
+S<-ggplot(data=my_data)
+S + geom_boxplot(aes(x=age, y=famsize))+
+  labs(title = "Age of Child by Family Size", x = "Age",)
+```
+
+Based on the boxplots, the age of the children with families of less greater than 3 is smaller and less varied. But it also has a smaller sample size.
+
+We'll do the same graphs for `G3.x` grouped by `famsize`. 
+
+```{r}
+H<-ggplot(data=my_data, aes(x = G3.x, fill=famsize))
+H + geom_histogram(binwidth = 1)+
+  labs(title = "Score by Family Size", x = "Final Math Grade",)
+```
+
+Again, LE3 seems to be more varied. It also seems reasonable to infer that the children who gots a 0 didn't take the exam, given that no one scored close to 0.
+
+```{r}
+H + geom_density()+
+  labs(title = "Final Math Grade by Family Size", x = "Final Math Grade",)
+```
+
+The kernel density graph makes the distributions of the final math grade across family size seem pretty similar.
+
+```{r}
+J <-ggplot(data=my_data)
+J + geom_boxplot(aes(x=G3.x, y=famsize))+
+  labs(title = "Final Math Grade by Family Size", x = "Final Math Grade",)
+```
+
+I wouldn't draw a ton of conclusion from this boxplot. These distributions seem pretty similar.
+
+Now we'll create a scatterplot between `G3.x` and `age`.
+
+```{r}
+  M <-ggplot(data=my_data, aes(x=age, y=G3.x, color=famsize))
+  M + geom_point(position = "jitter")+
+  labs(title = "Final Math Grade by Age and Family Size", x = "Age")
+```
+
+Again, the 0 scores are very apparent. It's really the only pattern.
+
+Now we'll do a scatterplot of `G3.x` and `absences.x`.
+
+```{r}
+  P <-ggplot(data=my_data, aes(x=absences.x, y=G3.x, color=famsize))
+  P + geom_point(position = "jitter")+
+  labs(title = "Final Math Grade by Number of Absences and Family Size", x = "Number of Absences")
+```
+
+The outliers in the number of absences are very apparent in this graph.
+
+Now, we will expand on the first scatterplot by factoring in `sex`.
+
+```{r}
+  M + geom_point(position = "jitter")+
+  facet_wrap(~sex)+
+  labs(title = "Final Math Grade by Age and Family Size", x = "Age")
+```
+
+Maybe females are younger? But we would have to investigate further.
+
+Now for the second scatterplot.
+
+```{r}
+  P + geom_point(position = "jitter")+
+  facet_wrap(~sex)
+  labs(title = "Final Math Grade by Number of Absences and Family Size", x = "Number of Absences")
+```
+
+No clear distinction between the sexes.
+
+Now we'll factor in `school` as well.
+
+```{r}
+  M + geom_point(position = "jitter")+
+  facet_wrap(school~sex)+
+  labs(title = "Final Math Grade by Age and Family Size", x = "Age")
+```
+
+It does seem that students in the "MS" school are older, but there are far less students included from that school.
+
+Now for the second scatterplot.
+
+```{r}
+  P + geom_point(position = "jitter")+
+  facet_wrap(school~sex)
+  labs(title = "Final Math Grade by Number of Absences and Family Size", x = "Number of Absences")
+```
+
+The difference in sample size between the schools is clear, but there does not seem to be a pattern wit the absences.
+
+
+
