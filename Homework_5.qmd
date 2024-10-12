@@ -180,7 +180,7 @@ my_data |>
 
 There are some high correlations between some of the test scores, but not all of them. Most of the realtionships seem realtively weak.
 
-We can create a histogram, kernel density plot, and boxplot for `age` grouped by `famsize`. 
+We can create a histogram, kernel density plot, and boxplot for `age` grouped by `famsize`.
 
 ```{r}
 N<-ggplot(data=my_data, aes(x = age, fill=famsize))
@@ -195,7 +195,7 @@ N + geom_density(adjust=2)+
   labs(title = "Age of Child by Family Size", x = "Age",)
 ```
 
-The kernel density graph shows the distribution in a similar way. I don't think having a smoother histogram made this graph look better. This is likely due to the numeric variable being discrete. 
+The kernel density graph shows the distribution in a similar way. I don't think having a smoother histogram made this graph look better. This is likely due to the numeric variable being discrete.
 
 ```{r}
 S<-ggplot(data=my_data)
@@ -205,7 +205,7 @@ S + geom_boxplot(aes(x=age, y=famsize))+
 
 Based on the boxplots, the age of the children with families of less greater than 3 is smaller and less varied. But it also has a smaller sample size.
 
-We'll do the same graphs for `G3.x` grouped by `famsize`. 
+We'll do the same graphs for `G3.x` grouped by `famsize`.
 
 ```{r}
 H<-ggplot(data=my_data, aes(x = G3.x, fill=famsize))
@@ -264,7 +264,7 @@ Now for the second scatterplot.
 
 ```{r}
   P + geom_point(position = "jitter")+
-  facet_wrap(~sex)
+  facet_wrap(~sex)+
   labs(title = "Final Math Grade by Number of Absences and Family Size", x = "Number of Absences")
 ```
 
@@ -284,11 +284,8 @@ Now for the second scatterplot.
 
 ```{r}
   P + geom_point(position = "jitter")+
-  facet_wrap(school~sex)
+  facet_wrap(school~sex)+
   labs(title = "Final Math Grade by Number of Absences and Family Size", x = "Number of Absences")
 ```
 
 The difference in sample size between the schools is clear, but there does not seem to be a pattern wit the absences.
-
-
-
