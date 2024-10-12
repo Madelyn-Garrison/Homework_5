@@ -288,4 +288,4 @@ Now for the second scatterplot.
   labs(title = "Final Math Grade by Number of Absences and Family Size", x = "Number of Absences")
 ```
 
-The difference in sample size between the schools is clear, but there does not seem to be a pattern wit the absences.
+The difference in sample size between the schools is clear, but there does not seem to be a pattern with the absences.
