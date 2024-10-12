@@ -29,7 +29,7 @@ combo<-inner_join(mat,por,by=join_by(school==school, sex==sex, age==age, address
                                      internet==internet))
 ```
 
-R throws a warning that there is an unexpected many-to-many relationship between the two data sets. It seems that there are more matching variables in the data set. It is likely not joined correctly. Now, the data will be matched on all variables except `absences`, `G1`, `G2`, and `G3`.
+R throws a warning that there is an unexpected many-to-many relationship between the two data sets. It seems that there are more matching variables in the data set. It is likely not joined adequately. Now, the data will be matched on all variables except `absences`, `G1`, `G2`, and `G3`.
 
 ```{r}
 my_data<-inner_join(mat,por,by=join_by(school==school, sex==sex, age==age, address==address, 
